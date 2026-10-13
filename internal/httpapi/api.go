@@ -61,6 +61,8 @@ func New(s *service.Service, ready func(context.Context) error, logger *zap.Logg
 	router.PUT("/users/:user_id/segments/:segment_id", a.addMembership)
 	router.DELETE("/users/:user_id/segments/:segment_id", a.removeMembership)
 	router.GET("/users/:user_id/segments", a.userSegments)
+	router.POST("/segments/:id/distributions", a.startDistribution)
+	router.GET("/distributions/:job_id", a.getDistribution)
 	return router
 }
 
@@ -79,7 +81,7 @@ func (a *API) fail(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, domain.ErrNotFound):
 		writeError(w, 404, "not_found", "resource not found")
 	case errors.Is(err, domain.ErrConflict):
-		writeError(w, 409, "conflict", "resource already exists")
+		writeError(w, 409, "conflict", err.Error())
 	case errors.Is(err, context.DeadlineExceeded):
 		writeError(w, 504, "timeout", "request deadline exceeded")
 	default:
@@ -286,4 +288,38 @@ func (a *API) userSegments(c *gin.Context) {
 		return
 	}
 	writeJSON(w, 200, out)
+}
+
+func (a *API) startDistribution(c *gin.Context) {
+	w, r := c.Writer, c.Request
+	id, err := pathID(c, "id")
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	var in *struct {
+		Percent json.RawMessage `json:"percent"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	if in == nil {
+		a.fail(w, r, domain.ErrInvalid)
+		return
+	}
+	job, err := a.service.StartDistribution(r.Context(), id, string(in.Percent))
+	if err != nil {
+		a.fail(w, r, err)
+		return
+	}
+	w.Header().Set("Location", "/distributions/"+job.ID)
+	writeJSON(w, 202, job)
+}
+func (a *API) getDistribution(c *gin.Context) {
+	job, err := a.service.GetDistribution(c.Request.Context(), c.Param("job_id"))
+	if err != nil {
+		a.fail(c.Writer, c.Request, err)
+		return
+	}
+	writeJSON(c.Writer, 200, job)
 }

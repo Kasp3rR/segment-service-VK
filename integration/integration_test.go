@@ -294,6 +294,12 @@ func TestMigrationsIdempotentAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	var exists bool
+	if err := s.Pool.QueryRow(ctx, `SELECT to_regclass('distribution_jobs') IS NOT NULL`).Scan(&exists); err != nil || exists {
+		t.Fatal("distribution rollback left table")
+	}
+	if err := postgres.Migrate(ctx, s.Pool, "down"); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.Pool.QueryRow(ctx, `SELECT to_regclass('segments') IS NOT NULL`).Scan(&exists); err != nil || exists {
 		t.Fatal("rollback left table")
 	}
@@ -313,7 +319,7 @@ func TestMigrationsConcurrentStartup(t *testing.T) {
 		}
 	}
 	var n int
-	if err := s.Pool.QueryRow(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 1 {
+	if err := s.Pool.QueryRow(context.Background(), `SELECT count(*) FROM schema_migrations`).Scan(&n); err != nil || n != 2 {
 		t.Fatalf("%d %v", n, err)
 	}
 }

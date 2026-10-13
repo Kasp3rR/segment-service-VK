@@ -180,3 +180,13 @@ func TestWriteErrorsPropagate(t *testing.T) {
 		}
 	}
 }
+
+func (f *fakeRepository) StartDistribution(_ context.Context, id int64, percent string) (domain.Job, error) {
+	f.calls++
+	f.sid = id
+	return domain.Job{SegmentID: id}, f.err
+}
+func (f *fakeRepository) GetDistribution(_ context.Context, id string) (domain.Job, error) {
+	f.calls++
+	return domain.Job{ID: id}, f.err
+}

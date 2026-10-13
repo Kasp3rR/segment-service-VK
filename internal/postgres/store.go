@@ -79,14 +79,22 @@ func (s *Store) PatchSegment(ctx context.Context, id int64, p domain.PatchSegmen
 	return scanSegment(s.Pool.QueryRow(ctx, `UPDATE segments SET name=COALESCE($2,name),description=COALESCE($3,description) WHERE id=$1 RETURNING id,code,name,description,created_at`, id, p.Name, p.Description))
 }
 func (s *Store) DeleteSegment(ctx context.Context, id int64) error {
-	tag, err := s.Pool.Exec(ctx, `DELETE FROM segments WHERE id=$1`, id)
+	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var found int64
+	if err = tx.QueryRow(ctx, `SELECT id FROM segments WHERE id=$1 FOR UPDATE`, id).Scan(&found); err != nil {
 		return mapError(err)
 	}
-	if tag.RowsAffected() == 0 {
-		return domain.ErrNotFound
+	if err = ensureNoActive(ctx, tx, id); err != nil {
+		return err
 	}
-	return nil
+	if _, err = tx.Exec(ctx, `DELETE FROM segments WHERE id=$1`, id); err != nil {
+		return mapError(err)
+	}
+	return mapError(tx.Commit(ctx))
 }
 func (s *Store) CreateUser(ctx context.Context, id int64) (domain.User, error) {
 	var u domain.User
@@ -103,6 +111,9 @@ func (s *Store) SetMembership(ctx context.Context, uid, sid int64, add bool) err
 	var found int64
 	if err = tx.QueryRow(ctx, `SELECT id FROM segments WHERE id=$1 FOR UPDATE`, sid).Scan(&found); err != nil {
 		return mapError(err)
+	}
+	if err = ensureNoActive(ctx, tx, sid); err != nil {
+		return err
 	}
 	if err = tx.QueryRow(ctx, `SELECT id FROM users WHERE id=$1 FOR KEY SHARE`, uid).Scan(&found); err != nil {
 		return mapError(err)

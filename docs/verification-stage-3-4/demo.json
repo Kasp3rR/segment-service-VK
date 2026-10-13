@@ -1,0 +1,22 @@
+{
+  "http_status": 202,
+  "elapsed_seconds": 0.78,
+  "job": {
+    "id": "94bdd047-0db3-47c2-8dac-42dded333f80",
+    "segment_id": 2,
+    "segment_code": "MAIL_GPT",
+    "percent": 30,
+    "snapshot_users": 70000,
+    "target_users": 21000,
+    "existing_users": 0,
+    "planned_users": 21000,
+    "assigned_users": 21000,
+    "batch_count": 5,
+    "processed_batches": 5,
+    "status": "completed",
+    "last_error": "",
+    "retry_count": 0,
+    "created_at": "2026-10-13T14:03:29.22162Z",
+    "completed_at": "2026-10-13T14:03:29.772112Z"
+  }
+}

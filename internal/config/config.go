@@ -5,13 +5,17 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type Config struct {
-	DatabaseURL, HTTPAddr           string
-	MaxConnections                  int32
-	RequestTimeout, ShutdownTimeout time.Duration
+	KafkaBrokers                           []string
+	KafkaTopic, KafkaGroup, WorkerHTTPAddr string
+	OutboxPollInterval, WorkerTimeout      time.Duration
+	DatabaseURL, HTTPAddr                  string
+	MaxConnections                         int32
+	RequestTimeout, ShutdownTimeout        time.Duration
 }
 
 func Load() (Config, error) { return Parse(os.Getenv) }
@@ -47,5 +51,57 @@ func Parse(get func(string) string) (Config, error) {
 			*x.dst = d
 		}
 	}
+	brokers := get("KAFKA_BROKERS")
+	if brokers == "" {
+		brokers = "localhost:29092"
+	}
+	c.KafkaBrokers = strings.Split(brokers, ",")
+	for i, b := range c.KafkaBrokers {
+		b = strings.TrimSpace(b)
+		host, port, e := net.SplitHostPort(b)
+		if e != nil || host == "" {
+			return c, fmt.Errorf("KAFKA_BROKERS must contain host:port entries")
+		}
+		n, e := strconv.Atoi(port)
+		if e != nil || n < 1 || n > 65535 {
+			return c, fmt.Errorf("invalid Kafka broker port")
+		}
+		c.KafkaBrokers[i] = b
+	}
+	c.KafkaTopic = get("KAFKA_TOPIC")
+	if c.KafkaTopic == "" {
+		c.KafkaTopic = "segment-distributions"
+	}
+	c.KafkaGroup = get("KAFKA_GROUP")
+	if c.KafkaGroup == "" {
+		c.KafkaGroup = "segment-service"
+	}
+	c.WorkerHTTPAddr = get("WORKER_HTTP_ADDR")
+	if c.WorkerHTTPAddr == "" {
+		c.WorkerHTTPAddr = ":8082"
+	}
+	if _, p, e := net.SplitHostPort(c.WorkerHTTPAddr); e != nil {
+		return c, fmt.Errorf("WORKER_HTTP_ADDR must be host:port")
+	} else if n, e := strconv.Atoi(p); e != nil || n < 1 || n > 65535 {
+		return c, fmt.Errorf("invalid worker HTTP port")
+	}
+	c.OutboxPollInterval = 250 * time.Millisecond
+	c.WorkerTimeout = 15 * time.Second
+	for _, x := range []struct {
+		name string
+		dst  *time.Duration
+	}{{"OUTBOX_POLL_INTERVAL", &c.OutboxPollInterval}, {"WORKER_TIMEOUT", &c.WorkerTimeout}} {
+		if v := get(x.name); v != "" {
+			d, e := time.ParseDuration(v)
+			if e != nil || d <= 0 {
+				return c, fmt.Errorf("%s must be a positive duration", x.name)
+			}
+			*x.dst = d
+		}
+	}
+	if c.WorkerTimeout < 6*time.Second {
+		return c, fmt.Errorf("WORKER_TIMEOUT must be at least 6s")
+	}
+
 	return c, nil
 }

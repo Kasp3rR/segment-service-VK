@@ -11,6 +11,8 @@ import (
 )
 
 type Repository interface {
+	StartDistribution(context.Context, int64, string) (domain.Job, error)
+	GetDistribution(context.Context, string) (domain.Job, error)
 	CreateSegment(context.Context, domain.CreateSegment) (domain.Segment, error)
 	GetSegment(context.Context, int64) (domain.Segment, error)
 	ListSegments(context.Context, domain.Page) ([]domain.Segment, error)
