@@ -1,0 +1,39 @@
+name: segment-service-vk
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: segments
+      POSTGRES_USER: segments
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-segments_local}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U segments -d segments"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgres://segments:${POSTGRES_PASSWORD:-segments_local}@postgres:5432/segments?sslmode=disable
+      HTTP_ADDR: :8080
+      DB_MAX_CONNS: ${DB_MAX_CONNS:-10}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-10s}
+      SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-10s}
+    ports:
+      - "127.0.0.1:${API_PORT:-18080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    init: true
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  postgres_data:
