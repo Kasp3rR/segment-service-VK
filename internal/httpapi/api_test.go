@@ -69,7 +69,7 @@ func TestHealthAndReadiness(t *testing.T) {
 		status     int
 	}{{"live", "/healthz", errors.New("offline"), 200}, {"ready", "/readyz", nil, 200}, {"unavailable", "/readyz", errors.New("offline"), 503}} {
 		t.Run(tc.name, func(t *testing.T) {
-			h := New(nil, func(context.Context) error { return tc.dbErr }, zap.NewNop(), time.Second)
+			h := NewRouter(nil, func(context.Context) error { return tc.dbErr }, zap.NewNop(), time.Second)
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, httptest.NewRequest("GET", tc.path, nil))
 			if w.Code != tc.status {
@@ -89,7 +89,7 @@ func TestOversizedTrailingBody(t *testing.T) {
 	}
 }
 func TestGinRecovery(t *testing.T) {
-	h := New(nil, func(context.Context) error { panic("unexpected failure") }, zap.NewNop(), time.Second)
+	h := NewRouter(nil, func(context.Context) error { panic("unexpected failure") }, zap.NewNop(), time.Second)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest("GET", "/readyz", nil))
 	if w.Code != 500 || strings.Contains(w.Body.String(), "unexpected failure") {
@@ -97,7 +97,7 @@ func TestGinRecovery(t *testing.T) {
 	}
 }
 func TestGinNotFoundAndMethod(t *testing.T) {
-	h := New(nil, func(context.Context) error { return nil }, zap.NewNop(), time.Second)
+	h := NewRouter(nil, func(context.Context) error { return nil }, zap.NewNop(), time.Second)
 	for _, tc := range []struct {
 		method, path string
 		status       int

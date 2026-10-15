@@ -30,6 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 func run(logger *zap.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -47,7 +48,15 @@ func run(logger *zap.Logger) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	server := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(service.New(store), store.Pool.Ping, logger, cfg.RequestTimeout), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: cfg.RequestTimeout + 5*time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	server := &http.Server{
+		Addr:              cfg.HTTPAddr,
+		Handler:           httpapi.NewRouter(service.NewService(store), store.Pool.Ping, logger, cfg.RequestTimeout),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      cfg.RequestTimeout + 5*time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    16 << 10,
+	}
 	done := make(chan error, 1)
 	go func() {
 		logger.Info("HTTP listening", zap.String("address", cfg.HTTPAddr))

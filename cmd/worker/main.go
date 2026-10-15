@@ -27,6 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 }
+
 func run(logger *zap.Logger) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -48,9 +49,21 @@ func run(logger *zap.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	instance, _ := os.Hostname()
-	worker := queue.Worker{Store: store, Brokers: cfg.KafkaBrokers, Topic: cfg.KafkaTopic, Group: cfg.KafkaGroup, Instance: instance, Logger: logger, PollInterval: cfg.OutboxPollInterval, OperationTimeout: cfg.WorkerTimeout}
+	worker := queue.Worker{
+		Store:            store,
+		Brokers:          cfg.KafkaBrokers,
+		Topic:            cfg.KafkaTopic,
+		Group:            cfg.KafkaGroup,
+		Instance:         instance,
+		Logger:           logger,
+		PollInterval:     cfg.OutboxPollInterval,
+		OperationTimeout: cfg.WorkerTimeout,
+	}
 	done := make(chan struct{})
-	go func() { defer close(done); worker.Run(ctx) }()
+	go func() {
+		defer close(done)
+		worker.Run(ctx)
+	}()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		check, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -66,9 +79,18 @@ func run(logger *zap.Logger) error {
 		w.WriteHeader(200)
 		_, _ = w.Write([]byte("ready\n"))
 	})
-	server := &http.Server{Addr: cfg.WorkerHTTPAddr, Handler: mux, ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second}
+	server := &http.Server{
+		Addr:              cfg.WorkerHTTPAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
 	serverDone := make(chan error, 1)
-	go func() { serverDone <- server.ListenAndServe() }()
+	go func() {
+		serverDone <- server.ListenAndServe()
+	}()
 	logger.Info("worker started", zap.Int("consumers", 4), zap.String("topic", cfg.KafkaTopic), zap.String("group", cfg.KafkaGroup))
 	select {
 	case <-ctx.Done():

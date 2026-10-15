@@ -78,7 +78,7 @@ func TestCreateSegmentValidation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &fakeRepository{}
-			s := New(repo)
+			s := NewService(repo)
 			got, err := s.CreateSegment(context.Background(), domain.CreateSegment{Code: tc.code, Name: tc.title, Description: tc.description})
 			if tc.valid {
 				if err != nil || repo.calls != 1 || got.Name != strings.TrimSpace(tc.title) {
@@ -104,7 +104,7 @@ func TestPatchValidation(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &fakeRepository{}
-			_, err := New(repo).PatchSegment(context.Background(), tc.id, tc.patch)
+			_, err := NewService(repo).PatchSegment(context.Background(), tc.id, tc.patch)
 			if tc.valid {
 				if err != nil || repo.calls != 1 {
 					t.Fatal(err)
@@ -126,7 +126,7 @@ func TestPageValidation(t *testing.T) {
 	}{{"default", domain.Page{Limit: 100}, true}, {"max", domain.Page{Limit: 1000, AfterID: 100}, true}, {"zero", domain.Page{}, false}, {"negative", domain.Page{Limit: -1}, false}, {"too_large", domain.Page{Limit: 1001}, false}, {"bad_cursor", domain.Page{Limit: 1, AfterID: -1}, false}} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &fakeRepository{}
-			_, err := New(repo).ListSegments(context.Background(), tc.p)
+			_, err := NewService(repo).ListSegments(context.Background(), tc.p)
 			if tc.valid {
 				if err != nil || repo.page != tc.p {
 					t.Fatal(err)
@@ -155,7 +155,7 @@ func TestOperationsValidateAndPropagate(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &fakeRepository{err: sentinel}
-			s := New(repo)
+			s := NewService(repo)
 			if err := tc.invalid(s); !errors.Is(err, domain.ErrInvalid) || repo.calls != 0 {
 				t.Fatal("invalid request reached repository")
 			}
@@ -168,7 +168,7 @@ func TestOperationsValidateAndPropagate(t *testing.T) {
 func TestWriteErrorsPropagate(t *testing.T) {
 	for _, e := range []error{domain.ErrConflict, domain.ErrNotFound, context.Canceled} {
 		r := &fakeRepository{err: e}
-		s := New(r)
+		s := NewService(r)
 		if _, got := s.CreateSegment(context.Background(), domain.CreateSegment{Code: "A", Name: "x"}); !errors.Is(got, e) {
 			t.Fatal(got)
 		}

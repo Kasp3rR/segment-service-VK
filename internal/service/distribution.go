@@ -16,6 +16,7 @@ func (s *Service) StartDistribution(ctx context.Context, segmentID int64, percen
 	}
 	return s.repo.StartDistribution(ctx, segmentID, percent)
 }
+
 func (s *Service) GetDistribution(ctx context.Context, id string) (domain.Job, error) {
 	if !distribution.ValidJobID(id) {
 		return domain.Job{}, invalid("job_id must be a UUID")

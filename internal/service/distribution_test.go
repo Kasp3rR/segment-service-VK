@@ -10,7 +10,7 @@ import (
 
 func TestDistributionValidation(t *testing.T) {
 	repo := &fakeRepository{}
-	s := New(repo)
+	s := NewService(repo)
 	ctx := context.Background()
 	for _, tc := range []struct {
 		id int64
@@ -29,7 +29,7 @@ func TestDistributionValidation(t *testing.T) {
 }
 func TestDistributionJobLookup(t *testing.T) {
 	repo := &fakeRepository{}
-	s := New(repo)
+	s := NewService(repo)
 	ctx := context.Background()
 	if _, err := s.GetDistribution(ctx, "bad"); !errors.Is(err, domain.ErrInvalid) || repo.calls != 0 {
 		t.Fatal(err)
@@ -42,7 +42,7 @@ func TestDistributionJobLookup(t *testing.T) {
 }
 func TestDistributionRepositoryErrors(t *testing.T) {
 	for _, cause := range []error{domain.ErrConflict, domain.ErrNotFound, context.DeadlineExceeded} {
-		s := New(&fakeRepository{err: cause})
+		s := NewService(&fakeRepository{err: cause})
 		if _, err := s.StartDistribution(context.Background(), 1, "30"); !errors.Is(err, cause) {
 			t.Fatal(err)
 		}

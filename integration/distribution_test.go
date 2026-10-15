@@ -492,7 +492,7 @@ func TestDistributionHTTP(t *testing.T) {
 	s := fixture(t, true)
 	seedUsers(t, s, 7)
 	seg := createSegment(t, s, "HTTP")
-	h := httpapi.New(service.New(s), s.Pool.Ping, zap.NewNop(), time.Second)
+	h := httpapi.NewRouter(service.NewService(s), s.Pool.Ping, zap.NewNop(), time.Second)
 	path := fmt.Sprintf("/segments/%d/distributions", seg.ID)
 	for _, body := range []string{`{}`, `null`, `{"percent":null}`, `{"percent":"30"}`, `{"percent":101}`, `{"percent":-1}`, `{"percent":30,"extra":true}`} {
 		request(t, h, "POST", path, body, 400)

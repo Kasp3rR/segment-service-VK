@@ -10,98 +10,107 @@ import (
 )
 
 type Config struct {
-	KafkaBrokers                           []string
-	KafkaTopic, KafkaGroup, WorkerHTTPAddr string
-	OutboxPollInterval, WorkerTimeout      time.Duration
-	DatabaseURL, HTTPAddr                  string
-	MaxConnections                         int32
-	RequestTimeout, ShutdownTimeout        time.Duration
+	DatabaseURL        string
+	HTTPAddr           string
+	MaxConnections     int32
+	RequestTimeout     time.Duration
+	ShutdownTimeout    time.Duration
+	KafkaBrokers       []string
+	KafkaTopic         string
+	KafkaGroup         string
+	WorkerHTTPAddr     string
+	OutboxPollInterval time.Duration
+	WorkerTimeout      time.Duration
 }
 
-func Load() (Config, error) { return Parse(os.Getenv) }
-func Parse(get func(string) string) (Config, error) {
-	c := Config{DatabaseURL: get("DATABASE_URL"), HTTPAddr: get("HTTP_ADDR"), MaxConnections: 10, RequestTimeout: 10 * time.Second, ShutdownTimeout: 10 * time.Second}
-	if c.DatabaseURL == "" {
-		return c, fmt.Errorf("DATABASE_URL is required")
-	}
-	if c.HTTPAddr == "" {
-		c.HTTPAddr = ":8080"
-	}
-	if _, port, e := net.SplitHostPort(c.HTTPAddr); e != nil {
-		return c, fmt.Errorf("HTTP_ADDR must be host:port")
-	} else if n, e := strconv.Atoi(port); e != nil || n < 1 || n > 65535 {
-		return c, fmt.Errorf("HTTP_ADDR port must be 1..65535")
-	}
-	if v := get("DB_MAX_CONNS"); v != "" {
-		n, e := strconv.ParseInt(v, 10, 32)
-		if e != nil || n < 1 || n > 100 {
-			return c, fmt.Errorf("DB_MAX_CONNS must be 1..100")
-		}
-		c.MaxConnections = int32(n)
-	}
-	for _, x := range []struct {
-		name string
-		dst  *time.Duration
-	}{{"REQUEST_TIMEOUT", &c.RequestTimeout}, {"SHUTDOWN_TIMEOUT", &c.ShutdownTimeout}} {
-		if v := get(x.name); v != "" {
-			d, e := time.ParseDuration(v)
-			if e != nil || d <= 0 {
-				return c, fmt.Errorf("%s must be a positive duration", x.name)
-			}
-			*x.dst = d
-		}
-	}
-	brokers := get("KAFKA_BROKERS")
-	if brokers == "" {
-		brokers = "localhost:29092"
-	}
-	c.KafkaBrokers = strings.Split(brokers, ",")
-	for i, b := range c.KafkaBrokers {
-		b = strings.TrimSpace(b)
-		host, port, e := net.SplitHostPort(b)
-		if e != nil || host == "" {
-			return c, fmt.Errorf("KAFKA_BROKERS must contain host:port entries")
-		}
-		n, e := strconv.Atoi(port)
-		if e != nil || n < 1 || n > 65535 {
-			return c, fmt.Errorf("invalid Kafka broker port")
-		}
-		c.KafkaBrokers[i] = b
-	}
-	c.KafkaTopic = get("KAFKA_TOPIC")
-	if c.KafkaTopic == "" {
-		c.KafkaTopic = "segment-distributions"
-	}
-	c.KafkaGroup = get("KAFKA_GROUP")
-	if c.KafkaGroup == "" {
-		c.KafkaGroup = "segment-service"
-	}
-	c.WorkerHTTPAddr = get("WORKER_HTTP_ADDR")
-	if c.WorkerHTTPAddr == "" {
-		c.WorkerHTTPAddr = ":8082"
-	}
-	if _, p, e := net.SplitHostPort(c.WorkerHTTPAddr); e != nil {
-		return c, fmt.Errorf("WORKER_HTTP_ADDR must be host:port")
-	} else if n, e := strconv.Atoi(p); e != nil || n < 1 || n > 65535 {
-		return c, fmt.Errorf("invalid worker HTTP port")
-	}
-	c.OutboxPollInterval = 250 * time.Millisecond
-	c.WorkerTimeout = 15 * time.Second
-	for _, x := range []struct {
-		name string
-		dst  *time.Duration
-	}{{"OUTBOX_POLL_INTERVAL", &c.OutboxPollInterval}, {"WORKER_TIMEOUT", &c.WorkerTimeout}} {
-		if v := get(x.name); v != "" {
-			d, e := time.ParseDuration(v)
-			if e != nil || d <= 0 {
-				return c, fmt.Errorf("%s must be a positive duration", x.name)
-			}
-			*x.dst = d
-		}
-	}
-	if c.WorkerTimeout < 6*time.Second {
-		return c, fmt.Errorf("WORKER_TIMEOUT must be at least 6s")
-	}
+func Load() (Config, error) {
+	return Parse(os.Getenv)
+}
 
-	return c, nil
+func Parse(get func(string) string) (Config, error) {
+	config := Config{
+		DatabaseURL:    get("DATABASE_URL"),
+		HTTPAddr:       valueOrDefault(get("HTTP_ADDR"), ":8080"),
+		MaxConnections: 10,
+		KafkaTopic:     valueOrDefault(get("KAFKA_TOPIC"), "segment-distributions"),
+		KafkaGroup:     valueOrDefault(get("KAFKA_GROUP"), "segment-service"),
+		WorkerHTTPAddr: valueOrDefault(get("WORKER_HTTP_ADDR"), ":8082"),
+	}
+	if config.DatabaseURL == "" {
+		return config, fmt.Errorf("DATABASE_URL is required")
+	}
+	err := validateAddress(config.HTTPAddr, "HTTP_ADDR", false)
+	if err != nil {
+		return config, err
+	}
+	err = validateAddress(config.WorkerHTTPAddr, "WORKER_HTTP_ADDR", false)
+	if err != nil {
+		return config, err
+	}
+	if value := get("DB_MAX_CONNS"); value != "" {
+		connections, err := strconv.ParseInt(value, 10, 32)
+		if err != nil || connections < 1 || connections > 100 {
+			return config, fmt.Errorf("DB_MAX_CONNS must be 1..100")
+		}
+		config.MaxConnections = int32(connections)
+	}
+	config.RequestTimeout, err = parseDuration(get("REQUEST_TIMEOUT"), "REQUEST_TIMEOUT", 10*time.Second)
+	if err != nil {
+		return config, err
+	}
+	config.ShutdownTimeout, err = parseDuration(get("SHUTDOWN_TIMEOUT"), "SHUTDOWN_TIMEOUT", 10*time.Second)
+	if err != nil {
+		return config, err
+	}
+	config.OutboxPollInterval, err = parseDuration(get("OUTBOX_POLL_INTERVAL"), "OUTBOX_POLL_INTERVAL", 250*time.Millisecond)
+	if err != nil {
+		return config, err
+	}
+	config.WorkerTimeout, err = parseDuration(get("WORKER_TIMEOUT"), "WORKER_TIMEOUT", 15*time.Second)
+	if err != nil {
+		return config, err
+	}
+	if config.WorkerTimeout < 6*time.Second {
+		return config, fmt.Errorf("WORKER_TIMEOUT must be at least 6s")
+	}
+	brokers := valueOrDefault(get("KAFKA_BROKERS"), "localhost:29092")
+	for _, address := range strings.Split(brokers, ",") {
+		address = strings.TrimSpace(address)
+		err = validateAddress(address, "KAFKA_BROKERS", true)
+		if err != nil {
+			return config, err
+		}
+		config.KafkaBrokers = append(config.KafkaBrokers, address)
+	}
+	return config, nil
+}
+
+func valueOrDefault(value string, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func parseDuration(value string, name string, fallback time.Duration) (time.Duration, error) {
+	if value == "" {
+		return fallback, nil
+	}
+	duration, err := time.ParseDuration(value)
+	if err != nil || duration <= 0 {
+		return 0, fmt.Errorf("%s must be a positive duration", name)
+	}
+	return duration, nil
+}
+
+func validateAddress(address string, name string, requireHost bool) error {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil || (requireHost && host == "") {
+		return fmt.Errorf("%s must be host:port", name)
+	}
+	number, err := strconv.Atoi(port)
+	if err != nil || number < 1 || number > 65535 {
+		return fmt.Errorf("%s port must be 1..65535", name)
+	}
+	return nil
 }

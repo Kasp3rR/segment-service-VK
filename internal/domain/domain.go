@@ -18,12 +18,23 @@ type Segment struct {
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
 type User struct {
 	ID        int64     `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
-type CreateSegment struct{ Code, Name, Description string }
-type PatchSegment struct{ Name, Description *string }
+
+type CreateSegment struct {
+	Code        string
+	Name        string
+	Description string
+}
+
+type PatchSegment struct {
+	Name        *string
+	Description *string
+}
+
 type Page struct {
 	Limit   int
 	AfterID int64

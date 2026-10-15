@@ -36,10 +36,13 @@ type SnapshotUser struct {
 	ID       int64
 	Assigned bool
 }
+
 type Plan struct {
-	Target, Existing int64
-	UserIDs          []int64
+	Target   int64
+	Existing int64
+	UserIDs  []int64
 }
+
 type Batch struct {
 	Version   int     `json:"version"`
 	JobID     string  `json:"job_id"`
@@ -47,6 +50,7 @@ type Batch struct {
 	Number    int     `json:"batch_number"`
 	UserIDs   []int64 `json:"user_ids"`
 }
+
 type Delivery struct {
 	Topic      string
 	Partition  int

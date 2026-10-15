@@ -269,6 +269,22 @@ internal/postgres         запросы pgx, транзакции, миграц
 integration               тесты на реальных PostgreSQL и Kafka
 ```
 
+## Как читать код
+
+Стиль организации кода приведён к [article-project](https://github.com/Kasp3rR/article-project):
+небольшие файлы по операциям, отдельные структуры запросов и последовательная обработка ошибок.
+
+1. `internal/httpapi/router.go` регистрирует маршруты через `NewRouter`.
+2. `internal/httpapi/dto.go` описывает входные данные; `segments.go`, `users.go`
+   и `distributions.go` разбирают запрос и вызывают сервис.
+3. `internal/service` проверяет данные. Каждая основная операция находится в отдельном файле.
+4. `internal/postgres` выполняет SQL и управляет транзакциями. `distribution.go` создаёт задание,
+   `outbox.go` отвечает за публикацию, `batches.go` сохраняет назначения.
+5. `internal/queue/worker.go` запускает публикатор и четыре консьюмера;
+   `producer.go` отправляет батчи, `consumer.go` обрабатывает сообщения и подтверждает offset.
+
+[Результаты проверки рефакторинга](docs/refactoring-verification.md).
+
 ## Ограничения и следующие этапы
 
 Compose рассчитан на локальную демонстрацию: один Kafka-брокер, replication factor 1,

@@ -355,7 +355,7 @@ func request(t *testing.T, h http.Handler, method, path, body string, status int
 }
 func TestHTTPFullScenario(t *testing.T) {
 	s := fixture(t, true)
-	h := httpapi.New(service.New(s), s.Pool.Ping, zap.NewNop(), time.Second)
+	h := httpapi.NewRouter(service.NewService(s), s.Pool.Ping, zap.NewNop(), time.Second)
 	raw := request(t, h, "POST", "/segments", `{"code":"MAIL_GPT","name":"GPT","description":"Письма"}`, 201)
 	var seg domain.Segment
 	if err := json.Unmarshal(raw, &seg); err != nil {
@@ -379,7 +379,7 @@ func TestHTTPFullScenario(t *testing.T) {
 }
 func TestHTTPValidation(t *testing.T) {
 	s := fixture(t, true)
-	h := httpapi.New(service.New(s), s.Pool.Ping, zap.NewNop(), time.Second)
+	h := httpapi.NewRouter(service.NewService(s), s.Pool.Ping, zap.NewNop(), time.Second)
 	for _, tc := range []struct {
 		name, method, path, body string
 		status                   int
