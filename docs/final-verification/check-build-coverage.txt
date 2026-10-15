@@ -1,0 +1,32 @@
+test -z "$(gofmt -l cmd internal integration)"
+go vet ./...
+go build -o bin/api ./cmd/api
+go build -o bin/migrate ./cmd/migrate
+go build -o bin/worker ./cmd/worker
+go build -o bin/demo ./cmd/demo
+go build -o bin/benchmark ./cmd/benchmark
+go test -race -coverprofile=coverage.out ./internal/service ./internal/distribution
+ok  	github.com/Kasp3rR/segment-service-VK/internal/service	(cached)	coverage: 100.0% of statements
+ok  	github.com/Kasp3rR/segment-service-VK/internal/distribution	(cached)	coverage: 98.5% of statements
+go tool cover -func=coverage.out
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:20:		ValidJobID		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:24:		Target			100.0%
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:43:		Score			100.0%
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:50:		BuildPlan		96.7%
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:100:	Batches			100.0%
+github.com/Kasp3rR/segment-service-VK/internal/distribution/plan.go:120:	ValidateBatch		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/create_segment.go:10:	CreateSegment		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/create_user.go:9:	CreateUser		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/delete_segment.go:7:	DeleteSegment		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/distribution.go:10:	StartDistribution	100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/distribution.go:20:	GetDistribution		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/get_segment.go:9:	GetSegment		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/list_segments.go:9:	ListSegments		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/membership.go:7:		SetMembership		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/service.go:26:		NewService		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/update_segment.go:10:	PatchSegment		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/user_segments.go:9:	UserSegments		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/validation.go:13:	invalid			100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/validation.go:17:	validName		100.0%
+github.com/Kasp3rR/segment-service-VK/internal/service/validation.go:22:	validDescription	100.0%
+total:										(statements)		99.1%

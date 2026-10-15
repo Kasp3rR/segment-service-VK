@@ -1,0 +1,31 @@
+{
+  "job": {
+    "id": "866ae3e2-8b34-4ac6-abf6-a0334bc30df3",
+    "segment_id": 1,
+    "segment_code": "MAIL_GPT",
+    "percent": 30,
+    "snapshot_users": 70000,
+    "target_users": 21000,
+    "existing_users": 0,
+    "planned_users": 21000,
+    "assigned_users": 21000,
+    "batch_count": 5,
+    "processed_batches": 5,
+    "status": "completed",
+    "last_error": "",
+    "retry_count": 0,
+    "created_at": "2026-10-15T16:02:48.780977Z",
+    "completed_at": "2026-10-15T16:02:49.953776Z"
+  },
+  "actual_assignments": 21000,
+  "verified_user_id": 3,
+  "user_segments": [
+    {
+      "id": 1,
+      "code": "MAIL_GPT",
+      "name": "GPT в письмах",
+      "description": "Демонстрация 30%",
+      "created_at": "2026-10-15T16:02:48.588209Z"
+    }
+  ]
+}

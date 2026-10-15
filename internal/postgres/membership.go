@@ -34,12 +34,12 @@ func (s *Store) SetMembership(ctx context.Context, userID, segmentID int64, add 
 	return mapError(tx.Commit(ctx))
 }
 
-func (s *Store) UserSegments(ctx context.Context, userID int64) ([]domain.Segment, error) {
-	const query = `SELECT s.id,s.code,s.name,s.description,s.created_at
+const UserSegmentsQuery = `SELECT s.id,s.code,s.name,s.description,s.created_at
  FROM users u LEFT JOIN user_segments us ON us.user_id=u.id
  LEFT JOIN segments s ON s.id=us.segment_id WHERE u.id=$1 ORDER BY us.segment_id`
 
-	rows, err := s.Pool.Query(ctx, query, userID)
+func (s *Store) UserSegments(ctx context.Context, userID int64) ([]domain.Segment, error) {
+	rows, err := s.Pool.Query(ctx, UserSegmentsQuery, userID)
 	if err != nil {
 		return nil, err
 	}

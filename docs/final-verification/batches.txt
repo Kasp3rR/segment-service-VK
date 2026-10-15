@@ -1,0 +1,14 @@
+                job_id                | batch_number | inserted_users |  consumer_id   | kafka_partition 
+--------------------------------------+--------------+----------------+----------------+-----------------
+ 866ae3e2-8b34-4ac6-abf6-a0334bc30df3 |            0 |           5000 | d2f871cdb580/0 |               0
+ 866ae3e2-8b34-4ac6-abf6-a0334bc30df3 |            1 |           5000 | d2f871cdb580/3 |               1
+ 866ae3e2-8b34-4ac6-abf6-a0334bc30df3 |            2 |           5000 | d2f871cdb580/1 |               2
+ 866ae3e2-8b34-4ac6-abf6-a0334bc30df3 |            3 |           5000 | d2f871cdb580/2 |               3
+ 866ae3e2-8b34-4ac6-abf6-a0334bc30df3 |            4 |           1000 | d2f871cdb580/0 |               0
+(5 rows)
+
+ pending_outbox 
+----------------
+              0
+(1 row)
+

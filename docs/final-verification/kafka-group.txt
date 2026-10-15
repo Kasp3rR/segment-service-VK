@@ -1,0 +1,6 @@
+
+GROUP           TOPIC                 PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                                              HOST            CLIENT-ID
+segment-service segment-distributions 0          2               2               0               worker@d2f871cdb580 (github.com/segmentio/kafka-go)-b56a67ea-a051-42cd-8f09-296c9c1540b2 /192.168.96.5   worker@d2f871cdb580 (github.com/segmentio/kafka-go)
+segment-service segment-distributions 3          1               1               0               worker@d2f871cdb580 (github.com/segmentio/kafka-go)-5028f941-39c8-46ad-8a4d-cb4d9d340cc3 /192.168.96.5   worker@d2f871cdb580 (github.com/segmentio/kafka-go)
+segment-service segment-distributions 2          1               1               0               worker@d2f871cdb580 (github.com/segmentio/kafka-go)-ae25d7b4-2d4c-4add-a518-bf1913e8c0a5 /192.168.96.5   worker@d2f871cdb580 (github.com/segmentio/kafka-go)
+segment-service segment-distributions 1          1               1               0               worker@d2f871cdb580 (github.com/segmentio/kafka-go)-4c70df6f-2c15-496a-bc7a-170b41d1fddb /192.168.96.5   worker@d2f871cdb580 (github.com/segmentio/kafka-go)
